@@ -1,25 +1,55 @@
 # MinUI CodeBase Analysis
 
 ## General
-At the highest level, MinUI (much like OnionOS) is not an OS, but rather a UI/configuration platform laid on top of the device’s stock OS. This comes with some interesting limitations and benefits. 
+At the highest level, MinUI (much like OnionOS) is not an OS, but rather a UI/configuration platform laid on top of the device's stock OS. This comes with some interesting limitations and benefits. 
 
-- The cool part is that boring things like input, bluetooth/wifi, display drivers come free, we don’t have to implement any of those.
-- The annoying part is that we’re locked into existing architecture/drivers. In the event of something like the RGXX where the manufacturer hasn’t extracted all the device's power out of it at launch, we can’t throw our own drivers at it.
+- The cool part is that boring things like input, bluetooth/wifi, display drivers come free, we don't have to implement any of those.
+- The annoying part is that we're locked into existing architecture/drivers. In the event of something like the RGXX where the manufacturer hasn't extracted all the device's power out of it at launch, we can't throw our own drivers at it.
 
-## Code pre-requisites
+## Code Prerequisites
 It is recommended (but not entirely necessary) to do all development in an x86_64 environment such as common AMD/Intel CPUs as this project relies on some bespoke Docker containers that are only built for one platform. This can be overcome on an M1 Mac by changing some of the Docker run calls to explicitly use the `--platform linux/arm64/v8` Docker flag. But there will be other minor build issues that need to be addressed. For the easiest experience, avoid working on Apple Silicon.
 
-Some CMake library along with zip are required to build/package the project.
+Some CMake library along with zip are required to build/package the project:
 
 ```sh
 sudo apt update
 sudo apt install cmake gcc zip
 ```
 
-There are some hiccups with the makefile that make it difficult to build without modification. For starters, the tidy command ignores your PLATFORM flag and assumes you’ve built for the rg35xxplus and rg40xxcube.
+There are some hiccups with the Makefile that make it difficult to build without modification. For starters, the tidy command ignores your PLATFORM flag and assumes you've built for the rg35xxplus and rg40xxcube.
 
-## Code overview
-As mentioned above, we’re dealing with a UI layer on top of stock OS here. The code structure is as follows:
+
+## Build guide
+Ideally things could be built with a simple 'make' command from the root directory. However, there is a bit of weirdness going on with the build pipelines. 
+
+### cmake targets
+
+### name
+- Ouputs the build target to the command line.
+
+#### setup
+- Removed `build` directory.
+- Prepares `releases` and `build` directory.
+- Creates txt files containing build/readme information that are required for packaging later on.
+
+### build 
+- Builds the toolchain for the specified `$PLATFORM`
+
+### system
+- Makes the specified `$PLATFORM` workspace makefile. 
+- Populates the associated `.build/SYSTEM` directory with those build files.
+
+### cores
+- Copies libretro (retroarch) cores from the specified `$PLATFORM` workspace into the associated `.build/SYSTEM` directory.
+
+##### *note: The `trimuismart` and `m17` `$PLATFORM`'s looks to have a dependency on `miyoomini` (pico8 core). This means we  will fail at building if both platforms if `miyoomini` isn't already built. I wounder why not just add that core to the m17 and trimuismart builds?*
+
+### common
+- Calls *build* *system* and *cores* targets to make files common for all installations. 
+
+
+## Code Overview
+As mentioned above, we're dealing with a UI layer on top of stock OS here. The code structure is as follows:
 
 ```
 MinUI/
@@ -32,21 +62,21 @@ makefile.toolchain
 ```
 
 ### Makefile & Makefile.toolchain
-As with any C project, these files lay out the instructions for building the project. The `makefile.toolchain` file is used to clone/build/run the current toolchains container, define environment variables that distinguish the paths of the host machine and toolchain containers workspace.
+As with any C project, these files lay out the instructions for building the project. The `makefile.toolchain` file is used to clone/build/run the current toolchains container and define environment variables that distinguish the paths of the host machine and toolchain container's workspace.
 
 ### Build
-This is where your compiled binaries will end up after you’ve built the project.
+This is where your compiled binaries will end up after you've built the project.
 
 ### Github
 Files necessary to generate/host the readme screenshots.
 
 ### Toolchains
-The dependent Docker build toolchains for specific devices. They set up a similar Linux environment to that of the host device (install the same libraries) and drop you into a host shell to run your test applications from. For example, `tg3040-toolchain` directs you to Trimui’s own [toolchain_sdk_smartpro](https://github.com/trimui/toolchain_sdk_smartpro/releases). Some other devices have required the community to make their own “SDK”/toolchains such as the [RG35XX toolchain](https://github.com/shauninman/union-rg35xxplus-toolchain).
+The dependent Docker build toolchains for specific devices. They set up a similar Linux environment to that of the host device (install the same libraries) and drop you into a host shell to run your test applications from. For example, `tg3040-toolchain` directs you to Trimui's own [toolchain_sdk_smartpro](https://github.com/trimui/toolchain_sdk_smartpro/releases). Some other devices have required the community to make their own "SDK"/toolchains such as the [RG35XX toolchain](https://github.com/shauninman/union-rg35xxplus-toolchain).
 
 ### Workspace
 This is where the magic happens, all UI/device specific code is located in this directory.
 
-## Build overview
+## Build Overview
 The general release of MinUI contains:
 
 ```
@@ -198,3 +228,11 @@ Note: Looking at the code, it looks like the Miyoo mini (plus?) and trimuismart 
 - **Trimuismart**
   - **Install**
     - `Boot.sh`: Called from `skeleton/boot/common/updater.sh`. Sends performance information to a CPU path. Uses `MinUI.zip` to update the system if the zip is present.
+
+### Random Findings
+
+#### Colors/Themes
+All colors (and other system defaults) are defined in `workspace/all/common/defines.h` and used throughout `workspace/all/minui/minui.c`. Simple modifications to these would allow for quick theme changes.
+
+#### Thumbnail Support
+The system supports thumbnails for files and folders. A thumbnail for a file or folder named `NAME.EXT` needs a corresponding `/.res/NAME.EXT.png` that is no bigger than the platform's `FIXED_HEIGHT x FIXED_HEIGHT`.
