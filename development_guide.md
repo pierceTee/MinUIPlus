@@ -12,6 +12,7 @@ It is recommended (but not entirely necessary) to do all development in an x86_6
 Some CMake library along with zip are required to build/package the project:
 
 ```sh
+# Install necessary dependencies.
 sudo apt update
 sudo apt install cmake gcc zip
 ```
@@ -19,39 +20,60 @@ sudo apt install cmake gcc zip
 There are some hiccups with the Makefile that make it difficult to build without modification. For starters, the tidy command ignores your PLATFORM flag and assumes you've built for the rg35xxplus and rg40xxcube.
 
 
-## Build guide
-Ideally things could be built with a simple 'make' command from the root directory. However, there is a bit of weirdness going on with the build pipelines. 
+## Build Guide  
+Ideally things could be built with a simple 'make' command from the root directory. However, there is a bit of complexity in the build pipelines.
 
-### cmake targets
+### Make Target Overview
 
-### name
-- Ouputs the build target to the command line.
+#### name
+- Outputs the build target to the command line.
 
-#### setup
-- Removed `build` directory.
-- Prepares `releases` and `build` directory.
-- Creates txt files containing build/readme information that are required for packaging later on.
+#### setup 
+- Removes `build` directory
+- Prepares `releases` and `build` directories 
+- Creates txt files containing build/readme information required for packaging
 
-### build 
+#### build
 - Builds the toolchain for the specified `$PLATFORM`
 
-### system
-- Makes the specified `$PLATFORM` workspace makefile. 
-- Populates the associated `.build/SYSTEM` directory with those build files.
+#### system
+- Makes the specified `$PLATFORM` workspace makefile
+- Populates the associated `.build/SYSTEM` directory with build files
 
-### cores
-- Copies libretro (retroarch) cores from the specified `$PLATFORM` workspace into the associated `.build/SYSTEM` directory.
+#### cores
+- Copies libretro (RetroArch) cores from the specified `$PLATFORM` workspace into the associated `.build/SYSTEM` directory
 
-##### *note: The `trimuismart` and `m17` `$PLATFORM`'s looks to have a dependency on `miyoomini` (pico8 core). This means we  will fail at building if both platforms if `miyoomini` isn't already built. I wounder why not just add that core to the m17 and trimuismart builds?*
+##### *Note: The `trimuismart` and `m17` `$PLATFORM`s have a dependency on `miyoomini` (pico8 core). This means builds will fail if `miyoomini` isn't already built. Consider adding that core directly to the m17 and trimuismart builds.*
 
-### common
-- Calls *build* *system* and *cores* targets to make files common for all installations. 
+#### common
+- Calls *build*, *system* and *cores* targets to make files common for all installations
 
+Building for a fresh install should be done in this order: 
+```sh
 
+# Start with a clean build directory
+make clean 
+# Build for tg3040 platform
+# Prepares build directories
+make PLATFORM=tg3040 setup
+
+# Builds core system files
+make PLATFORM=tg3040 common
+
+# Builds device-specific files 
+make PLATFORM=tg3040 special
+
+# Cleans up build artifacts
+make PLATFORM=tg3040 tidy
+
+# Creates release zips  
+make PLATFORM=tg3040 package 
+```
+ ##### *note: Some minor modifications had to be made to the  `tg3040` `makefile.copy` along with the main `makefile` in order to get this working as both were dependent on `miyoomini` and `rg35xx` builds running before it.*
 ## Code Overview
 As mentioned above, we're dealing with a UI layer on top of stock OS here. The code structure is as follows:
 
-```
+```sh
 MinUI/
 ├─ build/
 ├─ github/
@@ -222,7 +244,7 @@ Makefile requires Docker to be running, uses container to build.
   - **Common**: Holds OS booting bash script.
     - `updater.sh`: Checks `proc/cpuinfo` to check what device/platform is running and sets a corresponding `$PLATFORM` local var. Runs corresponding platform script in `/mnt/SDCARD/.tmp_update/`. This is how it remains multiplat I assume.
 
-Note: Looking at the code, it looks like the Miyoo mini (plus?) and trimuismart use the same CPU architecture denoted by “sun8i”. However, the Miyoo uses an ARM Cortex-A7 dual core, and the trimui smart pro uses an Allwinner A133P (A133 Plus) 1.8GHz.
+*Note: Looking at the code, it looks like the Miyoo mini (plus?) and trimuismart use the same CPU architecture denoted by “sun8i”. However, the Miyoo uses an ARM Cortex-A7 dual core, and the trimui smart pro uses an Allwinner A133P (A133 Plus) 1.8GHz.*
 
 ### Workspace
 - **Trimuismart**

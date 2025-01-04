@@ -2,28 +2,36 @@
 
 .PHONY: build
 
+# Ensure PLATFORM is specified
 ifeq (,$(PLATFORM))
 $(error please specify PLATFORM, eg. make PLATFORM=trimui)
 endif
 
+# Define workspace paths
 HOST_WORKSPACE=$(shell pwd)/workspace
 GUEST_WORKSPACE=/root/workspace
 
+# Define toolchain paths
 GIT_IF_NECESSARY=toolchains/$(PLATFORM)-toolchain
 INIT_IF_NECESSARY=toolchains/$(PLATFORM)-toolchain/.build
 
+# Default target: initialize toolchain and run Docker container
 all: $(INIT_IF_NECESSARY)
 	docker run -it --rm -v $(HOST_WORKSPACE):$(GUEST_WORKSPACE) $(PLATFORM)-toolchain /bin/bash
 
+# Initialize toolchain if necessary
 $(INIT_IF_NECESSARY): $(GIT_IF_NECESSARY)
 	cd toolchains/$(PLATFORM)-toolchain && make .build
 
+# Clone toolchain repository if necessary
 $(GIT_IF_NECESSARY):
 	mkdir -p toolchains
 	git clone https://github.com/shauninman/union-$(PLATFORM)-toolchain/ toolchains/$(PLATFORM)-toolchain
 
+# Clean toolchain
 clean:
 	cd toolchains/$(PLATFORM)-toolchain && make clean
 
+# Build target: initialize toolchain and run Docker container with build command
 build: $(INIT_IF_NECESSARY)
-	docker run -it --rm -v $(HOST_WORKSPACE):$(GUEST_WORKSPACE) $(PLATFORM)-toolchain /bin/bash -c '. ~/.bashrc && cd /root/workspace && make'
+	docker run -it --rm -v $(HOST_WORKSPACE):$(GUEST_WORKSPACE) $(PLATFORM)-toolchain /bin/bash -c '. ~/.bashrc && cd /root/workspace && git config --global --add safe.directory "*" && make'

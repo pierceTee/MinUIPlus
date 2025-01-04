@@ -11,7 +11,7 @@ endif
 endif
 
 ifeq (,$(PLATFORMS))
-PLATFORMS = miyoomini trimuismart rg35xx rg35xxplus tg5040 tg3040 rgb30 m17 gkdpixel my282 magicmini
+PLATFORMS = miyoomini trimuismart tg5040 tg3040
 endif
 
 ###########################################################
@@ -41,6 +41,7 @@ build:
 	# ----------------------------------------------------
 	make build -f makefile.toolchain PLATFORM=$(PLATFORM)
 	# ----------------------------------------------------
+	echo "\033[42mMake build $(PLATFORM) success\033[0m"
 
 system:
 	make -f ./workspace/$(PLATFORM)/platform/makefile.copy PLATFORM=$(PLATFORM)
@@ -53,6 +54,8 @@ system:
 	cp ./workspace/all/syncsettings/build/$(PLATFORM)/syncsettings.elf ./build/SYSTEM/$(PLATFORM)/bin/
 	cp ./workspace/all/clock/build/$(PLATFORM)/clock.elf ./build/EXTRAS/Tools/$(PLATFORM)/Clock.pak/
 	cp ./workspace/all/minput/build/$(PLATFORM)/minput.elf ./build/EXTRAS/Tools/$(PLATFORM)/Input.pak/
+	echo "\033[42mMake System Success\033[0m"
+
 
 cores: # TODO: can't assume every platform will have the same stock cores (platform should be responsible for copy too)
 	# stock cores
@@ -81,6 +84,7 @@ ifneq ($(PLATFORM),gkdpixel)
 	cp ./workspace/$(PLATFORM)/cores/output/mednafen_supafaust_libretro.so ./build/EXTRAS/Emus/$(PLATFORM)/SUPA.pak
 	cp ./workspace/$(PLATFORM)/cores/output/mednafen_vb_libretro.so ./build/EXTRAS/Emus/$(PLATFORM)/VB.pak
 endif
+	echo "\033[42mMake cores $PLATFORM Success\033[0m"
 
 common: build system cores
 	
@@ -93,9 +97,9 @@ setup: name
 	tty -s 
 	
 	# ready fresh build
-	rm -rf ./build
-	mkdir -p ./releases
-	cp -R ./skeleton ./build
+	 rm -rf ./build
+	 mkdir -p ./releases
+	 cp -R ./skeleton ./build
 	
 	# remove authoring detritus
 	cd ./build && find . -type f -name '.keep' -delete
@@ -106,7 +110,8 @@ setup: name
 	mkdir -p ./workspace/readmes
 	cp ./skeleton/BASE/README.txt ./workspace/readmes/BASE-in.txt
 	cp ./skeleton/EXTRAS/README.txt ./workspace/readmes/EXTRAS-in.txt
-	
+	echo "\033[42mMake setup success\033[0m"
+
 done:
 	say "done" 2>/dev/null || true
 
@@ -118,15 +123,17 @@ special:
 	cp -R ./build/BOOT/.tmp_update ./build/BASE/miyoo/app/
 	cp -R ./build/BOOT/.tmp_update ./build/BASE/trimui/app/
 	cp -R ./build/BASE/miyoo ./build/BASE/miyoo354
+	echo "\033[42mMake special success\033[0m"
 
 tidy:
 	# ----------------------------------------------------
 	# copy update from rg35xxplus to old rg40xxcube bin so old cards update properly
-	mkdir -p ./build/SYSTEM/rg40xxcube/bin/
-	cp ./build/SYSTEM/rg35xxplus/bin/install.sh ./build/SYSTEM/rg40xxcube/bin/
+	# mkdir -p ./build/SYSTEM/rg40xxcube/bin/
+	# cp ./build/SYSTEM/rg35xxplus/bin/install.sh ./build/SYSTEM/rg40xxcube/bin/
 
 	# remove various detritus
 	rm -rf ./build/EXTRAS/Tools/tg5040/Developer.pak
+	echo "\033[42mMake tidy success\033[0m"
 
 package: tidy
 	# ----------------------------------------------------
@@ -149,10 +156,10 @@ package: tidy
 	mv ./build/PAYLOAD/MinUI.zip ./build/BASE
 	
 	# TODO: can I just add everything in BASE to zip?
-	cd ./build/BASE && zip -r ../../releases/$(RELEASE_NAME)-base.zip Bios Roms Saves miyoo miyoo354 trimui rg35xx rg35xxplus gkdpixel em_ui.sh MinUI.zip README.txt
-	cd ./build/EXTRAS && zip -r ../../releases/$(RELEASE_NAME)-extras.zip Bios Emus Roms Saves Tools README.txt
+	cd ./build/BASE && zip -r ../../releases/$(RELEASE_NAME)-base.zip Bios Roms Saves $(PLATFORMS) $(if $(findstring m17,$(PLATFORMS)),em_ui.sh) MinUI.zip README.txt	cd ./build/EXTRAS && zip -r ../../releases/$(RELEASE_NAME)-extras.zip Bios Emus Roms Saves Tools README.txt
 	echo "$(RELEASE_NAME)" > ./build/latest.txt
-	
+	echo "\033[42mMake package success\033[0m"
+
 ###########################################################
 
 .DEFAULT:
