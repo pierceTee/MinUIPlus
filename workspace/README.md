@@ -55,19 +55,19 @@ Building for a fresh install should be done in this order:
 make clean 
 # Build for tg3040 platform
 # Prepares build directories
-make PLATFORM=tg3040 setup
+make setup PLATFORM=tg3040 
 
 # Builds core system files
-make PLATFORM=tg3040 common
+make common PLATFORM=tg3040 
 
 # Builds device-specific files 
-make PLATFORM=tg3040 special
+make special PLATFORM=tg3040 
 
 # Cleans up build artifacts
-make PLATFORM=tg3040 tidy
+make tidy PLATFORM=tg3040 
 
 # Creates release zips  
-make PLATFORM=tg3040 package 
+make package PLATFORM=tg3040  
 ```
  ##### *note: Some minor modifications had to be made to the  `tg3040` `makefile.copy` along with the main `makefile` in order to get this working as both were dependent on `miyoomini` and `rg35xx` builds running before it.*
 ## Code Overview
